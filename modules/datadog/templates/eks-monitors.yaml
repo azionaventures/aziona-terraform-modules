@@ -1,0 +1,38 @@
+%{ for metric in metrics ~}
+%{ for container in containers ~}
+
+${metric.resource_name}-${environment}-${container}:
+  name: "[EKS][${metric.title_tag}][${environment}][${container}] ${metric.title_message}"
+  type: metric alert
+  query: |
+    avg(last_10m):avg:${metric.metric}{kube_deployment:${container}-${environment}} > ${metric.critical}
+  message: |
+    {{#is_warning}}
+    ${metric.metric} ${environment} ${container} ${metric.warning_message}
+    {{/is_warning}}
+    {{#is_alert}}
+    ${metric.metric} ${environment} ${container} ${metric.alert_message}
+    {{/is_alert}}
+  escalation_message: ""
+  tags: [ "datadog/monitor:devops", "type:eks-kubernetes" ]
+  notify_no_data: false
+  notify_audit: false
+  require_full_window: false
+  enable_logs_sample: false
+  force_delete: true
+  include_tags: true
+  locked: false
+  renotify_interval: 60
+  timeout_h: 60
+  evaluation_delay: 60
+  new_host_delay: 60
+  no_data_timeframe: 10
+  threshold_windows: { }
+  thresholds:
+    critical: ${metric.critical}
+    warning: ${metric.warning}
+    critical_recovery: ${metric.critical_recovery}
+    warning_recovery: ${metric.warning_recovery}
+
+%{ endfor ~}
+%{ endfor ~}

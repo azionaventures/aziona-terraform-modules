@@ -1,0 +1,156 @@
+%{ for instance in instances ~}
+ec2-failed-status-check-${instance.instance_id}:
+  name: "[DATADOG][AGENT][${instance.tags.Name}][%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }] Agent is not running"
+  type: metric alert
+  query: |
+    avg(last_10m):avg:datadog.agent.running{host:%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }} <= 0
+  message: |
+    ${instance.tags.Name} %{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif } datadog agent is not running
+  escalation_message: |
+    ${instance.tags.Name} %{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif } datadog agent is not running, fix this now!
+  tags: [ "env:${environment}", "datadog/monitor:devops", "host:${instance.tags.Name}" ]
+  notify_no_data: false
+  notify_audit: false
+  require_full_window: false
+  enable_logs_sample: false
+  force_delete: true
+  include_tags: true
+  locked: false
+  renotify_interval: 60
+  timeout_h: 60
+  evaluation_delay: 60
+  new_host_delay: 60
+  no_data_timeframe: 10
+  threshold_windows: { }
+  thresholds:
+    critical: 0
+    critical_recovery: 1
+
+ec2-high-cpu-usage-${instance.instance_id}:
+  name: "[EC2][CPU][${instance.tags.Name}][%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }] High CPU Usage Detected "
+  type: metric alert
+  query: |
+    avg(last_10m):avg:system.cpu.system{host:%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }} > %{ if contains(keys(ec2_settings), "cpu_usage_critical") == true }${ec2_settings["cpu_usage_critical"]}%{ else }90%{ endif }
+  message: "${instance.tags.Name} %{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif } High CPU usage for the last 10 minutes on"
+  escalation_message: "${instance.tags.Name} %{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif } High CPU usage for the last 10 minutes on, fix this now!"
+  tags: [ "env:${environment}", "datadog/monitor:devops", "host:${instance.tags.Name}" ]
+  notify_no_data: false
+  notify_audit: false
+  require_full_window: false
+  enable_logs_sample: false
+  force_delete: true
+  include_tags: true
+  locked: false
+  renotify_interval: 60
+  timeout_h: 60
+  evaluation_delay: 60
+  new_host_delay: 60
+  no_data_timeframe: 10
+  threshold_windows: { }
+  thresholds:
+    critical: %{ if contains(keys(ec2_settings), "cpu_usage_critical") == true }${ec2_settings["cpu_usage_critical"]}%{ else }90%{ endif }
+    warning: %{ if contains(keys(ec2_settings), "cpu_usage_warning") == true }${ec2_settings["cpu_usage_warning"]}%{ else }60%{ endif }
+    critical_recovery: %{ if contains(keys(ec2_settings), "cpu_usage_critical_recovery") == true }${ec2_settings["cpu_usage_critical_recovery"]}%{ else }75%{ endif }
+    warning_recovery: %{ if contains(keys(ec2_settings), "cpu_usage_warning_recovery") == true }${ec2_settings["cpu_usage_warning_recovery"]}%{ else }50%{ endif }
+
+
+ec2-high-memory-usage-${instance.instance_id}:
+  name: "[EC2][MEMORY][${instance.tags.Name}][%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }] High Memory Usage Detected"
+  type: metric alert
+  query: |
+    avg(last_10m):avg:system.mem.pct_usable{host:%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }} < %{ if contains(keys(ec2_settings), "memory_usage_critical") == true }${ec2_settings["memory_usage_critical"]}%{ else }0.1%{ endif }
+  message: |
+    {{#is_warning}}
+    ${instance.tags.Name} %{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif } memory usage is high
+    {{/is_warning}}
+    {{#is_alert}}
+    ${instance.tags.Name} %{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif } memory usage is high
+    {{/is_alert}}
+  escalation_message: ""
+  tags: [ "env:${environment}", "datadog/monitor:devops", "host:${instance.tags.Name}" ]
+  notify_no_data: false
+  notify_audit: false
+  require_full_window: false
+  enable_logs_sample: false
+  force_delete: true
+  include_tags: true
+  locked: false
+  renotify_interval: 60
+  timeout_h: 60
+  evaluation_delay: 60
+  new_host_delay: 60
+  no_data_timeframe: 10
+  threshold_windows: { }
+  thresholds:
+    critical: %{ if contains(keys(ec2_settings), "memory_usage_critical") == true }${ec2_settings["memory_usage_critical"]}%{ else }0.1%{ endif }
+    warning: %{ if contains(keys(ec2_settings), "memory_usage_warning") == true }${ec2_settings["memory_usage_warning"]}%{ else }0.2%{ endif }
+    critical_recovery: %{ if contains(keys(ec2_settings), "memory_usage_critical_recovery") == true }${ec2_settings["memory_usage_critical_recovery"]}%{ else }0.2%{ endif }
+    warning_recovery: %{ if contains(keys(ec2_settings), "memory_usage_warning_recovery") == true }${ec2_settings["memory_usage_warning_recovery"]}%{ else }0.3%{ endif }
+
+ec2-high-filesystem-usage-${instance.instance_id}:
+  name: "[EC2][FILESYSTEM][${instance.tags.Name}][%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }] High Filesystem Usage Detected"
+  type: metric alert
+  query: |
+    avg(last_10m):avg:system.disk.free{host:%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }} < %{ if contains(keys(ec2_settings), "filesystem_usage_critical") == true }${ec2_settings["filesystem_usage_critical"]}%{ else }536870912%{ endif }
+  message: |
+    {{#is_warning}}
+    {{cluster_name}} filesystem usage is very high
+    {{/is_warning}}
+    {{#is_alert}}
+    {{cluster_name}} filesystem usage is very high
+    {{/is_alert}}
+  escalation_message: ""
+  tags: [ "env:${environment}", "datadog/monitor:devops", "host:${instance.tags.Name}" ]
+  notify_no_data: false
+  notify_audit: false
+  require_full_window: false
+  enable_logs_sample: false
+  force_delete: true
+  include_tags: true
+  locked: false
+  renotify_interval: 60
+  timeout_h: 60
+  evaluation_delay: 60
+  new_host_delay: 60
+  no_data_timeframe: 10
+  threshold_windows: { }
+  thresholds:
+    critical: %{ if contains(keys(ec2_settings), "filesystem_usage_critical") == true }${ec2_settings["filesystem_usage_critical"]}%{ else }536870912%{ endif }
+    warning: %{ if contains(keys(ec2_settings), "filesystem_usage_warning") == true }${ec2_settings["filesystem_usage_warning"]}%{ else }1073741824%{ endif }
+    critical_recovery: %{ if contains(keys(ec2_settings), "filesystem_usage_critical_recovery") == true }${ec2_settings["filesystem_usage_critical_recovery"]}%{ else }966367640%{ endif }
+    warning_recovery: %{ if contains(keys(ec2_settings), "filesystem_usage_warning_recovery") == true }${ec2_settings["filesystem_usage_warning_recovery"]}%{ else }1610612736%{ endif }
+
+ec2-credit-balance-low-${instance.instance_id}:
+  name: "[EC2][CPUCREDIT_BALANCE][${instance.tags.Name}][%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }] cpu credit balance is running low"
+  type: metric alert
+  query: |
+    avg(last_10m):avg:aws.ec2.cpucredit_balance{host:%{ if contains(keys(instance.tags), "datadog/override/hostname") == true }${instance.tags["datadog/override/hostname"]}%{ else }${instance.instance_id}%{ endif }} < %{ if contains(keys(ec2_settings), "credit_balance_critical") == true }${ec2_settings["credit_balance_critical"]}%{ else }150%{ endif }
+  message: |
+    {{#is_warning}}
+    {{cluster_name}} cpu credit balance is running low
+    {{/is_warning}}
+    {{#is_alert}}
+    {{cluster_name}} cpu credit balance is running low
+    {{/is_alert}}
+  escalation_message: ""
+  tags: [ "env:${environment}", "datadog/monitor:devops", "host:${instance.tags.Name}" ]
+  notify_no_data: false
+  notify_audit: false
+  require_full_window: false
+  enable_logs_sample: false
+  force_delete: true
+  include_tags: true
+  locked: false
+  renotify_interval: 60
+  timeout_h: 60
+  evaluation_delay: 60
+  new_host_delay: 60
+  no_data_timeframe: 10
+  threshold_windows: { }
+  thresholds:
+    critical: %{ if contains(keys(ec2_settings), "credit_balance_critical") == true }${ec2_settings["credit_balance_critical"]}%{ else }150%{ endif }
+    warning: %{ if contains(keys(ec2_settings), "credit_balance_warning") == true }${ec2_settings["credit_balance_warning"]}%{ else }250%{ endif }
+    critical_recovery: %{ if contains(keys(ec2_settings), "credit_balance_critical_recovery") == true }${ec2_settings["credit_balance_critical_recovery"]}%{ else }200%{ endif }
+    warning_recovery: %{ if contains(keys(ec2_settings), "credit_balance_warning_recovery") == true }${ec2_settings["credit_balance_warning_recovery"]}%{ else }300%{ endif }
+
+%{ endfor ~}

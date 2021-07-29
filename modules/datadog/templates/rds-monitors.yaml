@@ -1,0 +1,30 @@
+%{ for cluster_identifier in cluster_identifiers ~}
+
+rds-high-cpu-usage-${cluster_identifier}:
+  name: "[RDS][CPU][${cluster_identifier}] High CPU Usage Detected "
+  type: metric alert
+  query: |
+    avg(last_10m):avg:aws.rds.cpuutilization{dbclusteridentifier:${cluster_identifier}} > %{ if contains(keys(rds_settings), "cpu_usage_critical") == true }${rds_settings["cpu_usage_critical"]}%{ else }90%{ endif }
+  message: "${cluster_identifier} High CPU usage for the last 10 minutes on"
+  escalation_message: "${cluster_identifier} High CPU usage for the last 10 minutes on, fix this now!"
+  tags: [ "type:dbclusteridentifier", "datadog/monitor:devops" ]
+  notify_no_data: false
+  notify_audit: false
+  require_full_window: false
+  enable_logs_sample: false
+  force_delete: true
+  include_tags: true
+  locked: false
+  renotify_interval: 60
+  timeout_h: 60
+  evaluation_delay: 60
+  new_host_delay: 60
+  no_data_timeframe: 10
+  threshold_windows: { }
+  thresholds:
+    critical: %{ if contains(keys(rds_settings), "cpu_usage_critical") == true }${rds_settings["cpu_usage_critical"]}%{ else }90%{ endif }
+    warning: %{ if contains(keys(rds_settings), "cpu_usage_warning") == true }${rds_settings["cpu_usage_warning"]}%{ else }60%{ endif }
+    critical_recovery: %{ if contains(keys(rds_settings), "cpu_usage_critical_recovery") == true }${rds_settings["cpu_usage_critical_recovery"]}%{ else }75%{ endif }
+    warning_recovery: %{ if contains(keys(rds_settings), "cpu_usage_warning_recovery") == true }${rds_settings["cpu_usage_warning_recovery"]}%{ else }50%{ endif }
+
+%{ endfor ~}
